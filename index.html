@@ -7,38 +7,28 @@
     <title>Christmas Game</title>
 </head>
 <body>
-    <div id="field">
-        <canvas id="myCanvas" width="700" height="700"></canvas>
-    </div>
+    <canvas id="myCanvas" width="1366" height="1024"></canvas>
     <script>
         const FPS = 30; //frames per second
         const SLED_SIZE = 80; //size in pizels
         const SLED_THRUST = 5; //accel of the sled
         const TURN_SPEED = 360; //turn speed in deg per second
         const FRICTION = 0.7; //friction coefficient of snow (0 = no friction, 1 = lots)
-        const PRES_NUM = 3; //starting num of pres
+        const PRES_NUM = 5; //starting num of pres
         const PRES_SPD = 50; //max starting speed in pix per second
         const PRES_SIZE = 100; // starting size of presents in pix
+        const SHOW_CENTER_DOT = false; //center dot for testing
+        const SHOW_BOUNDING = false; //show circles for collision
+        const SLED_EXPLODE_DUR = 0.4; //duration of sled explosion
+        const SLED_INV_DUR = 3; //sled invincibility
+        const SLED_BLINK_DUR = 0.1; //sled invincibility blink length
 
 
         /** @type {HTMLCanvasElement}  */
         const canvas = document.getElementById("myCanvas");
         const ctx = canvas.getContext("2d");
 
-        var sled = {
-            x: canvas.width/2,
-            y: canvas.height/2,
-            r: SLED_SIZE /2,
-            a: 90 / 180 * Math.PI, //convert to radians
-            rot: 0,
-            color: "black",
-            thrusting: false,
-            thrust: {
-                x: 0,
-                y: 0
-            }
-            // img: 'media/images/reindeer.png'
-        };
+        var sled = newSled();
 
         //set up presents
         var pres = [];
@@ -58,12 +48,22 @@
             pres = [];
             var x, y;
             for (var i = 0; i < PRES_NUM; i++ ){
+                do {
                 x = Math.floor(Math.random() * canvas.width);
                 y = Math.floor(Math.random() * canvas.height);
-                console.log(x,y)
+                } while (distBetweenPoints(sled.x, sled.y, x, y) < PRES_SIZE * 2 + sled.r);
                 pres.push(newPres(x, y));
             }
         }
+        
+        function distBetweenPoints(x1, y1, x2, y2){
+            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        }
+
+        function explodeSled(){
+            sled.explodeTime = Math.ceil(SLED_EXPLODE_DUR * FPS)
+        };
+
 
         function keyDown(/** @type {KeyboardEvent} */ ev){
             switch(ev.keyCode){
@@ -105,25 +105,37 @@
             return pres;
         }
 
+        function newSled(){
+                return {
+                    x: canvas.width/2,
+                    y: canvas.height/2,
+                    r: SLED_SIZE /2,
+                    a: 90 / 180 * Math.PI, //convert to radians
+                    rot: 0,
+                    blinkTime : Math.ceil(SLED_BLINK_DUR * FPS),
+                    blinkNum : Math.ceil(SLED_INV_DUR / SLED_BLINK_DUR),
+                    thrusting: false,
+                    thrust: {
+                        x: 0,
+                        y: 0
+                    },
+                    explodeTime: 0
+                };
+        }
+
+
         function drawPres(x, y){    
             var img = new Image();
             img.src = "media/images/pres.png";
-            // img.onload = function() {
-                ctx.drawImage(img, x, y, PRES_SIZE, PRES_SIZE);
-            // }
+            ctx.drawImage(img, x-PRES_SIZE/2, y-PRES_SIZE/2, PRES_SIZE, PRES_SIZE);
         }
         
-        // function drawSled(sled){    
-        //     var img = new Image();
-        //     img.src = "media/images/reindeer.png";
-        //     ctx.drawImage(img, sled.x, sled.y, SLED_SIZE, SLED_SIZE);
-        // }
 
         function drawSled(sled){
             var img = new Image();
             img.src = "media/images/reindeer.png";
             ctx.save();
-            ctx.translate(sled.x+SLED_SIZE/2, sled.y+SLED_SIZE/2);
+            ctx.translate(sled.x, sled.y);
             ctx.rotate(-sled.a+(90/180 *Math.PI));
             ctx.translate(-sled.x-SLED_SIZE/2, -sled.y-SLED_SIZE/2);
             ctx.drawImage(img, sled.x, sled.y, SLED_SIZE, SLED_SIZE);
@@ -132,12 +144,15 @@
 
 
         function update(){
+            var blinkOn = sled.blinkNum % 2 == 0;
+            var exploding = sled.explodeTime > 0;
+
             //draw snow
             ctx.fillStyle = "antiquewhite";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             //thrust the sled
-            if (sled.thrusting){
+            if (sled.thrusting && !exploding){
                 sled.thrust.x += SLED_THRUST * Math.cos(sled.a)/ FPS;
                 sled.thrust.y -= SLED_THRUST * Math.sin(sled.a)/ FPS;
             } else {
@@ -146,26 +161,47 @@
             }
             
             //draw sled
-            
-            drawSled(sled);
-            // ctx.strokeStyle = sled.color;
-            // ctx.lineWidth = SLED_SIZE /20;
-            // ctx.beginPath();
-            // ctx.moveTo( //nose of sled
-            //     sled.x + 4/3 * sled.r * Math.cos(sled.a),
-            //     sled.y - 4/3 * sled.r * Math.sin(sled.a)
-            // );
-            // ctx.lineTo( //rear left
-            //     sled.x - sled.r * (2/3 * Math.cos(sled.a) + Math.sin(sled.a)),
-            //     sled.y + sled.r * (2/3 * Math.sin(sled.a) - Math.cos(sled.a))
-            // );
+            if (!exploding){
+                if (blinkOn){
+                    drawSled(sled);
+                }
 
-            // ctx.lineTo( //rear right
-            //     sled.x - sled.r * (2/3 * Math.cos(sled.a) - Math.sin(sled.a)),
-            //     sled.y + sled.r * (2/3 * Math.sin(sled.a) + Math.cos(sled.a))
-            // );
-            // ctx.closePath();
-            // ctx.stroke();
+                //handle blinking
+                if (sled.blinkNum > 0){
+                    //reduce blink time
+                    sled.blinkTime--;
+
+                    //reduce blink num
+                    if (sled.blinkTime == 0){
+                        sled.blinkTime = Math.ceil(SLED_BLINK_DUR * FPS);
+                        sled.blinkNum--;
+                    }
+                }
+            } else {
+                //draw explosion!
+                ctx.fillStyle = 'red';
+                ctx.beginPath();
+                ctx.arc(sled.x, sled.y, sled.r * 1.3, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.fillStyle = 'orange';
+                ctx.beginPath();
+                ctx.arc(sled.x, sled.y, sled.r, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.fillStyle = 'yellow';
+                ctx.beginPath();
+                ctx.arc(sled.x, sled.y, sled.r * 0.6, 0, 2 * Math.PI);
+                ctx.fill();
+                
+            }
+
+            //show collision circle for sled
+            if (SHOW_BOUNDING){
+                ctx.strokeStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(sled.x, sled.y, 40, 0, 2 * Math.PI);
+                ctx.stroke();
+            };
+           
 
             //draw pres
             ctx.strokeStyle = "red";
@@ -176,48 +212,49 @@
                 x = pres[i].x;
                 y = pres[i].y;
                 drawPres(x, y);
-                //draw pres outside
-                // ctx.beginPath();
-                // const img = new Image();
-                // img.src = 'media/images/pres.png'
-                // img.onload = function(){
-                //     ctx.fillStyle = img;
-                //     ctx.fillRect(x, y, PRES_SIZE, PRES_SIZE);
-                //     // ctx.strokeRect(x, y, PRES_SIZE, PRES_SIZE);
 
-                //     //vertical line
-                //     ctx.moveTo(
-                //         x + PRES_SIZE/2,
-                //         y
-                //     );
-                //     ctx.lineTo(x + PRES_SIZE/2, y + PRES_SIZE);
-
-                //     //horizontal line
-                //     ctx.moveTo(
-                //         x,
-                //         y + PRES_SIZE/2
-                //     );
-                //     ctx.lineTo(x + PRES_SIZE, y + PRES_SIZE/2);
-                // }
-                // ctx.closePath();
-                // ctx.stroke();
-                //move pres
-
-                //handle edge of screen
+                //show collision circles for pres
+                if (SHOW_BOUNDING){
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = PRES_SIZE / 30;
+                    ctx.beginPath();
+                    ctx.arc(x, y, pres[i].r, 0, 2 * Math.PI);
+                    ctx.stroke();
+                };
             }
 
 
-
             // //center dot for testing
-            // ctx.fillStyle = 'red';
-            // ctx.fillRect(sled.x -1, sled.y - 1, 2, 2);
+            if (SHOW_CENTER_DOT){
+                ctx.fillStyle = 'red';
+                ctx.fillRect(sled.x -1, sled.y - 1, 2, 2);
+            }
 
-            //rotate sled
-            sled.a += sled.rot;
+            //check for collisions
+            if (!exploding){
+                if (sled.blinkNum == 0){
 
-            //move sled
-            sled.x += sled.thrust.x;
-            sled.y += sled.thrust.y;
+                    for (var i = 0; i < pres.length; i++){
+                        if (distBetweenPoints(sled.x, sled.y, pres[i].x, pres[i].y) < sled.r + pres[i].r) {
+                            explodeSled();
+                        }
+                    }
+                    
+                }
+                //rotate sled
+                sled.a += sled.rot;
+                //move sled
+                sled.x += sled.thrust.x;
+                sled.y += sled.thrust.y;
+                
+            } else {
+                sled.explodeTime--;
+
+                if (sled.explodeTime == 0){
+                    sled = newSled();
+                }
+            }
+            
 
             //handle edge of screen
             if (sled.x < 0 - sled.r){
@@ -229,6 +266,24 @@
                 sled.y = canvas.height + sled.r;
             } else if (sled.y > canvas.height + sled.r){
                 sled.y = 0 - sled.r;
+            }
+
+            for (var i = 0; i < pres.length; i++){
+                 //move pres
+                pres[i].x += pres[i].xv;
+                pres[i].y += pres[i].yv;
+
+                //handle edge of screen
+                if (pres[i].x < 0 - pres[i].r){
+                    pres[i].x = canvas.width + pres[i].r;
+                } else if (pres[i].x > canvas.width + pres[i].r){
+                    pres[i].x = 0 - pres[i].r;
+                }
+                if (pres[i].y < 0 - pres[i].r){
+                    pres[i].y = canvas.height + pres[i].r;
+                } else if (pres[i].y > canvas.height + pres[i].r){
+                    pres[i].y = 0 - pres[i].r;
+                }
             }
 
         }
