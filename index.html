@@ -16,7 +16,7 @@
         const FRICTION = 0.7; //friction coefficient of snow (0 = no friction, 1 = lots)
         const PRES_NUM = 5; //starting num of pres
         const PRES_SPD = 50; //max starting speed in pix per second
-        const PRES_SIZE = 100; // starting size of presents in pix
+        const PRES_SIZE = 150; // starting size of presents in pix
         const SHOW_CENTER_DOT = false; //center dot for testing
         const SHOW_BOUNDING = false; //show circles for collision
         const SLED_EXPLODE_DUR = 0.4; //duration of sled explosion
@@ -24,7 +24,7 @@
         const SLED_BLINK_DUR = 0.1; //sled invincibility blink length
         const POO_MAX = 10; //max number of poo on screen at once
         const POO_SPEED = 500; //speed in px per second
-        const POO_DIST = 0.4; //max disd poo can travel as fraction of  screen width
+        const POO_DIST = 0.5; //max dist poo can travel as fraction of  screen width
 
 
         /** @type {HTMLCanvasElement}  */
@@ -55,7 +55,7 @@
                 x = Math.floor(Math.random() * canvas.width);
                 y = Math.floor(Math.random() * canvas.height);
                 } while (distBetweenPoints(sled.x, sled.y, x, y) < PRES_SIZE * 2 + sled.r);
-                pres.push(newPres(x, y));
+                pres.push(newPres(x, y, Math.ceil(PRES_SIZE / 2)));
             }
         }
         
@@ -102,16 +102,38 @@
             }
         }
 
-        function newPres(x, y){
+        function newPres(x, y, r){
             var pres = {
                 x: x,
                 y: y,
                 xv: Math.random() * PRES_SPD / FPS * (Math.random() < 0.5 ? 1 : -1),
                 yv: Math.random() * PRES_SPD / FPS * (Math.random() < 0.5 ? 1 : -1),
-                r: PRES_SIZE / 2,
+                r: r,
                 a: Math.random() * Math.PI * 2 //in radians
             }
             return pres;
+        }
+
+        function destroyPres(index){
+            var x = pres[index].x;
+            var y = pres[index].y;
+            var r = pres[index].r;
+
+            //spilt the pres in 2
+            if (r == Math.ceil(PRES_SIZE / 2)){
+                console.log('new pres 1', r)
+                // PRES_SIZE = 50
+                pres.push(newPres(x, y, PRES_SIZE / 4));
+                pres.push(newPres(x, y, PRES_SIZE / 4));
+            } else if (r == Math.ceil(PRES_SIZE / 4)){
+                console.log('new pres 2', r)
+                // PRES_SIZE = 25
+                pres.push(newPres(x, y, Math.ceil(PRES_SIZE / 8)));
+                pres.push(newPres(x, y, Math.ceil(PRES_SIZE / 8)));
+            }
+
+            //destroy pres
+            pres.splice(index, 1);
         }
 
         function newSled(){
@@ -152,10 +174,10 @@
         }
 
 
-        function drawPres(x, y){    
+        function drawPres(x, y, r){    
             var img = new Image();
             img.src = "media/images/pres.png";
-            ctx.drawImage(img, x-PRES_SIZE/2, y-PRES_SIZE/2, PRES_SIZE, PRES_SIZE);
+            ctx.drawImage(img, x-r, y-r, 2*r, 2*r);
         }
         
 
@@ -239,12 +261,13 @@
                 //get pres properties
                 x = pres[i].x;
                 y = pres[i].y;
-                drawPres(x, y);
+                r = pres[i].r;
+                drawPres(x, y, r);
 
                 //show collision circles for pres
                 if (SHOW_BOUNDING){
                     ctx.strokeStyle = 'black';
-                    ctx.lineWidth = PRES_SIZE / 30;
+                    ctx.lineWidth = PRES_SIZE / 40;
                     ctx.beginPath();
                     ctx.arc(x, y, pres[i].r, 0, 2 * Math.PI);
                     ctx.stroke();
@@ -266,6 +289,37 @@
                 ctx.fill();
             }
 
+            //detect poo hit on pres
+            var ax, ay, ar, lx, ly;
+            for (var i =pres.length -1; i>=0; i--){
+
+                //get pres properties
+                ax = pres[i].x;
+                ay = pres[i].y;
+                ar = pres[i].r;
+
+                //loop over poos
+
+                for(var j = sled.poos.length -1; j >= 0; j--) {
+                    
+                    //get poo properties
+                    lx = sled.poos[j].x;
+                    ly = sled.poos[j].y;
+
+                    //detect hits
+                    if (distBetweenPoints(ax, ay, lx, ly) < PRES_SIZE * 0.7){
+
+                        //remove poo
+                        sled.poos.splice(j, 1);
+
+                        //remove poos
+                        destroyPres(i);
+
+                        break;
+                    }
+                }
+            }
+
             //check for collisions
             if (!exploding){
                 if (sled.blinkNum == 0){
@@ -273,18 +327,19 @@
                     for (var i = 0; i < pres.length; i++){
                         if (distBetweenPoints(sled.x, sled.y, pres[i].x, pres[i].y) < sled.r + pres[i].r) {
                             explodeSled();
+                            destroyPres(i);
                         }
                     }
                     
                 }
                 //rotate sled
                 sled.a += sled.rot;
+
                 //move sled
                 sled.x += sled.thrust.x;
                 sled.y += sled.thrust.y;
 
                 //move the poos
-
                 for (var i = sled.poos.length -1 ; i >= 0; i--){
 
                     //check dist travelled
