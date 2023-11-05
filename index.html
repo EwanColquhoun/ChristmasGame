@@ -10,21 +10,22 @@
     <canvas id="myCanvas" width="1366" height="1024"></canvas>
     <script>
         const FPS = 30; //frames per second
-        const SLED_SIZE = 80; //size in pizels
-        const SLED_THRUST = 5; //accel of the sled
         const TURN_SPEED = 360; //turn speed in deg per second
         const FRICTION = 0.7; //friction coefficient of snow (0 = no friction, 1 = lots)
         const PRES_NUM = 5; //starting num of pres
         const PRES_SPD = 50; //max starting speed in pix per second
         const PRES_SIZE = 150; // starting size of presents in pix
-        const SHOW_CENTER_DOT = false; //center dot for testing
-        const SHOW_BOUNDING = false; //show circles for collision
+        const SLED_SIZE = 100; //size in pizels
+        const SLED_THRUST = 5; //accel of the sled
         const SLED_EXPLODE_DUR = 0.4; //duration of sled explosion
         const SLED_INV_DUR = 3; //sled invincibility
         const SLED_BLINK_DUR = 0.1; //sled invincibility blink length
         const POO_MAX = 10; //max number of poo on screen at once
         const POO_SPEED = 500; //speed in px per second
         const POO_DIST = 0.5; //max dist poo can travel as fraction of  screen width
+        const POO_EXPLODE_DUR = 0.1 //duration of the poo explosion
+        const SHOW_CENTER_DOT = false; //center dot for testing
+        const SHOW_BOUNDING = false; //show circles for collision
 
 
         /** @type {HTMLCanvasElement}  */
@@ -165,7 +166,8 @@
                     y: sled.y, //from the nose
                     xv: POO_SPEED* Math.cos(sled.a) / FPS,
                     yv: -POO_SPEED* Math.sin(sled.a) / FPS,
-                    dist: 0
+                    dist: 0,
+                    explodeTime: 0
                 
                 })
             }
@@ -283,10 +285,25 @@
 
             //draw poos
             for (var i = 0; i < sled.poos.length; i++) {
-                ctx.fillStyle = "brown";
-                ctx.beginPath();
-                ctx.arc(sled.poos[i].x, sled.poos[i].y, SLED_SIZE/15, 0, Math.PI * 2, false);
-                ctx.fill();
+                if ( sled.poos[i].explodeTime == 0){
+                    ctx.fillStyle = "brown";
+                    ctx.beginPath();
+                    ctx.arc(sled.poos[i].x, sled.poos[i].y, SLED_SIZE/15, 0, Math.PI * 2, false);
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = "grey";
+                    ctx.beginPath();
+                    ctx.arc(sled.poos[i].x, sled.poos[i].y, sled.r * 0.75, 0, Math.PI * 2, false);
+                    ctx.fill();
+                    ctx.fillStyle = "brown";
+                    ctx.beginPath();
+                    ctx.arc(sled.poos[i].x, sled.poos[i].y, sled.r * 0.5, 0, Math.PI * 2, false);
+                    ctx.fill();
+                    ctx.fillStyle = "black";
+                    ctx.beginPath();
+                    ctx.arc(sled.poos[i].x, sled.poos[i].y, sled.r * 0.25, 0, Math.PI * 2, false);
+                    ctx.fill();
+                }
             }
 
             //detect poo hit on pres
@@ -307,13 +324,11 @@
                     ly = sled.poos[j].y;
 
                     //detect hits
-                    if (distBetweenPoints(ax, ay, lx, ly) < PRES_SIZE * 0.7){
+                    if (sled.poos[j].explodeTime == 0 && distBetweenPoints(ax, ay, lx, ly) < PRES_SIZE * 0.5){
 
-                        //remove poo
-                        sled.poos.splice(j, 1);
-
-                        //remove poos
+                        //remove pres and activate poo explosion
                         destroyPres(i);
+                        sled.poos[j].explodeTime = Math.ceil(POO_EXPLODE_DUR * FPS);
 
                         break;
                     }
@@ -328,6 +343,7 @@
                         if (distBetweenPoints(sled.x, sled.y, pres[i].x, pres[i].y) < sled.r + pres[i].r) {
                             explodeSled();
                             destroyPres(i);
+                            break;
                         }
                     }
                     
@@ -348,12 +364,25 @@
                         continue;
                     }
 
-                    //move the poo
-                    sled.poos[i].x += sled.poos[i].xv;
-                    sled.poos[i].y += sled.poos[i].yv;
+                    //handle explosion
+                    if (sled.poos[i].explodeTime > 0){
+                        sled.poos[i].explodeTime--;
 
-                    //calculate dist travelled
-                    sled.poos[i].dist += Math.sqrt(Math.pow(sled.poos[i].xv, 2) + Math.pow(sled.poos[i].yv, 2))
+                        //destroy poo after duration is up
+                        if (sled.poos[i].explodeTime == 0){
+                            sled.poos.splice(i, 1);
+                            continue;
+                        }
+
+                    } else {
+
+                        //move the poo
+                        sled.poos[i].x += sled.poos[i].xv;
+                        sled.poos[i].y += sled.poos[i].yv;
+
+                        //calculate dist travelled
+                        sled.poos[i].dist += Math.sqrt(Math.pow(sled.poos[i].xv, 2) + Math.pow(sled.poos[i].yv, 2))
+                    }
 
                     //handle edge of screen
                     if (sled.poos[i].x < 0){
