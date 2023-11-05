@@ -7,6 +7,232 @@
     <title>Christmas Game</title>
 </head>
 <body>
-    
+    <div id="field">
+        <canvas id="myCanvas" width="700" height="700"></canvas>
+    </div>
+    <script>
+        const FPS = 30; //frames per second
+        const SLED_SIZE = 80; //size in pizels
+        const SLED_THRUST = 5; //accel of the sled
+        const TURN_SPEED = 360; //turn speed in deg per second
+        const FRICTION = 0.7; //friction coefficient of snow (0 = no friction, 1 = lots)
+        const PRES_NUM = 3; //starting num of pres
+        const PRES_SPD = 50; //max starting speed in pix per second
+        const PRES_SIZE = 100; // starting size of presents in pix
+
+
+        /** @type {HTMLCanvasElement}  */
+        const canvas = document.getElementById("myCanvas");
+        const ctx = canvas.getContext("2d");
+
+        var sled = {
+            x: canvas.width/2,
+            y: canvas.height/2,
+            r: SLED_SIZE /2,
+            a: 90 / 180 * Math.PI, //convert to radians
+            rot: 0,
+            color: "black",
+            thrusting: false,
+            thrust: {
+                x: 0,
+                y: 0
+            }
+            // img: 'media/images/reindeer.png'
+        };
+
+        //set up presents
+        var pres = [];
+        createPresDisp();
+
+        // const image = new Image();
+
+        //set up event handlers
+        document.addEventListener("keydown", keyDown);
+        document.addEventListener("keyup", keyUp);
+
+        //set up game loop
+
+        setInterval(update, 1000/ FPS);
+
+        function createPresDisp(){
+            pres = [];
+            var x, y;
+            for (var i = 0; i < PRES_NUM; i++ ){
+                x = Math.floor(Math.random() * canvas.width);
+                y = Math.floor(Math.random() * canvas.height);
+                console.log(x,y)
+                pres.push(newPres(x, y));
+            }
+        }
+
+        function keyDown(/** @type {KeyboardEvent} */ ev){
+            switch(ev.keyCode){
+                case 37: //left arrow (rotate left)
+                    sled.rot = TURN_SPEED / 180 * Math.PI / FPS;
+                    break;
+                case 38: //up arrow (thrust forward)
+                    sled.thrusting = true;
+                    break;
+                case 39: //right arrow (rotate right)
+                    sled.rot = -TURN_SPEED / 180 * Math.PI / FPS;
+                    break;
+            }
+        }
+
+        function keyUp(/** @type {KeyboardEvent} */ ev){
+            switch(ev.keyCode){
+                case 37: //left arrow (stop rotating left)
+                    sled.rot = 0;
+                    break;
+                case 38: //up arrow (stop thrust forward)
+                    sled.thrusting = false;
+                    break;
+                case 39: //right arrow (stop rotating right)
+                    sled.rot = 0;
+                    break;
+            }
+        }
+
+        function newPres(x, y){
+            var pres = {
+                x: x,
+                y: y,
+                xv: Math.random() * PRES_SPD / FPS * (Math.random() < 0.5 ? 1 : -1),
+                yv: Math.random() * PRES_SPD / FPS * (Math.random() < 0.5 ? 1 : -1),
+                r: PRES_SIZE / 2,
+                a: Math.random() * Math.PI * 2 //in radians
+            }
+            return pres;
+        }
+
+        function drawPres(x, y){    
+            var img = new Image();
+            img.src = "media/images/pres.png";
+            // img.onload = function() {
+                ctx.drawImage(img, x, y, PRES_SIZE, PRES_SIZE);
+            // }
+        }
+        
+        // function drawSled(sled){    
+        //     var img = new Image();
+        //     img.src = "media/images/reindeer.png";
+        //     ctx.drawImage(img, sled.x, sled.y, SLED_SIZE, SLED_SIZE);
+        // }
+
+        function drawSled(sled){
+            var img = new Image();
+            img.src = "media/images/reindeer.png";
+            ctx.save();
+            ctx.translate(sled.x+SLED_SIZE/2, sled.y+SLED_SIZE/2);
+            ctx.rotate(-sled.a+(90/180 *Math.PI));
+            ctx.translate(-sled.x-SLED_SIZE/2, -sled.y-SLED_SIZE/2);
+            ctx.drawImage(img, sled.x, sled.y, SLED_SIZE, SLED_SIZE);
+            ctx.restore();
+        }
+
+
+        function update(){
+            //draw snow
+            ctx.fillStyle = "antiquewhite";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            //thrust the sled
+            if (sled.thrusting){
+                sled.thrust.x += SLED_THRUST * Math.cos(sled.a)/ FPS;
+                sled.thrust.y -= SLED_THRUST * Math.sin(sled.a)/ FPS;
+            } else {
+                sled.thrust.x -= FRICTION * sled.thrust.x / FPS;
+                sled.thrust.y -= FRICTION * sled.thrust.y / FPS;
+            }
+            
+            //draw sled
+            
+            drawSled(sled);
+            // ctx.strokeStyle = sled.color;
+            // ctx.lineWidth = SLED_SIZE /20;
+            // ctx.beginPath();
+            // ctx.moveTo( //nose of sled
+            //     sled.x + 4/3 * sled.r * Math.cos(sled.a),
+            //     sled.y - 4/3 * sled.r * Math.sin(sled.a)
+            // );
+            // ctx.lineTo( //rear left
+            //     sled.x - sled.r * (2/3 * Math.cos(sled.a) + Math.sin(sled.a)),
+            //     sled.y + sled.r * (2/3 * Math.sin(sled.a) - Math.cos(sled.a))
+            // );
+
+            // ctx.lineTo( //rear right
+            //     sled.x - sled.r * (2/3 * Math.cos(sled.a) - Math.sin(sled.a)),
+            //     sled.y + sled.r * (2/3 * Math.sin(sled.a) + Math.cos(sled.a))
+            // );
+            // ctx.closePath();
+            // ctx.stroke();
+
+            //draw pres
+            ctx.strokeStyle = "red";
+            ctx.lineWidth = PRES_SIZE / 20;
+            var x, y, r, a;
+            for (var i = 0; i < pres.length; i++){
+                //get pres properties
+                x = pres[i].x;
+                y = pres[i].y;
+                drawPres(x, y);
+                //draw pres outside
+                // ctx.beginPath();
+                // const img = new Image();
+                // img.src = 'media/images/pres.png'
+                // img.onload = function(){
+                //     ctx.fillStyle = img;
+                //     ctx.fillRect(x, y, PRES_SIZE, PRES_SIZE);
+                //     // ctx.strokeRect(x, y, PRES_SIZE, PRES_SIZE);
+
+                //     //vertical line
+                //     ctx.moveTo(
+                //         x + PRES_SIZE/2,
+                //         y
+                //     );
+                //     ctx.lineTo(x + PRES_SIZE/2, y + PRES_SIZE);
+
+                //     //horizontal line
+                //     ctx.moveTo(
+                //         x,
+                //         y + PRES_SIZE/2
+                //     );
+                //     ctx.lineTo(x + PRES_SIZE, y + PRES_SIZE/2);
+                // }
+                // ctx.closePath();
+                // ctx.stroke();
+                //move pres
+
+                //handle edge of screen
+            }
+
+
+
+            // //center dot for testing
+            // ctx.fillStyle = 'red';
+            // ctx.fillRect(sled.x -1, sled.y - 1, 2, 2);
+
+            //rotate sled
+            sled.a += sled.rot;
+
+            //move sled
+            sled.x += sled.thrust.x;
+            sled.y += sled.thrust.y;
+
+            //handle edge of screen
+            if (sled.x < 0 - sled.r){
+                sled.x = canvas.width + sled.r;
+            } else if (sled.x > canvas.width + sled.r){
+                sled.x = 0 - sled.r;
+            }
+            if (sled.y < 0 - sled.r){
+                sled.y = canvas.height + sled.r;
+            } else if (sled.y > canvas.height + sled.r){
+                sled.y = 0 - sled.r;
+            }
+
+        }
+
+    </script>
 </body>
 </html>

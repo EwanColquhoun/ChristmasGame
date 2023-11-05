@@ -1,3 +1,18 @@
 body {
-    background-color: red;
+    background-color: lightgrey;
 }
+
+#field {
+    width: 80vw;
+    height: 80vh;
+    border: 2px solid grey;
+    margin: auto;
+    /* background-color: rgb(243, 115, 115); */
+}
+
+#myCanvas {
+    background-color: antiquewhite;
+    height: 100%;
+    width: 100%;
+}
+
