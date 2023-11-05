@@ -22,6 +22,9 @@
         const SLED_EXPLODE_DUR = 0.4; //duration of sled explosion
         const SLED_INV_DUR = 3; //sled invincibility
         const SLED_BLINK_DUR = 0.1; //sled invincibility blink length
+        const POO_MAX = 10; //max number of poo on screen at once
+        const POO_SPEED = 500; //speed in px per second
+        const POO_DIST = 0.4; //max disd poo can travel as fraction of  screen width
 
 
         /** @type {HTMLCanvasElement}  */
@@ -76,6 +79,9 @@
                 case 39: //right arrow (rotate right)
                     sled.rot = -TURN_SPEED / 180 * Math.PI / FPS;
                     break;
+                case 32: //space bar (shoots poo)
+                    shootPoo();
+                    break;
             }
         }
 
@@ -89,6 +95,9 @@
                     break;
                 case 39: //right arrow (stop rotating right)
                     sled.rot = 0;
+                    break;
+                case 32: //space bar (can shoot poo)
+                    sled.canShoot = true;
                     break;
             }
         }
@@ -119,8 +128,27 @@
                         x: 0,
                         y: 0
                     },
-                    explodeTime: 0
+                    explodeTime: 0,
+                    canShoot: true,
+                    poos: []
                 };
+        }
+
+
+        function shootPoo(){
+            //create poo object
+            if (sled.canShoot && sled.poos.length < POO_MAX){
+                sled.poos.push({
+                    x: sled.x, //from the nose
+                    y: sled.y, //from the nose
+                    xv: POO_SPEED* Math.cos(sled.a) / FPS,
+                    yv: -POO_SPEED* Math.sin(sled.a) / FPS,
+                    dist: 0
+                
+                })
+            }
+            //prevent shooting
+            sled.canShoot = false
         }
 
 
@@ -230,6 +258,14 @@
                 ctx.fillRect(sled.x -1, sled.y - 1, 2, 2);
             }
 
+            //draw poos
+            for (var i = 0; i < sled.poos.length; i++) {
+                ctx.fillStyle = "brown";
+                ctx.beginPath();
+                ctx.arc(sled.poos[i].x, sled.poos[i].y, SLED_SIZE/15, 0, Math.PI * 2, false);
+                ctx.fill();
+            }
+
             //check for collisions
             if (!exploding){
                 if (sled.blinkNum == 0){
@@ -246,6 +282,36 @@
                 //move sled
                 sled.x += sled.thrust.x;
                 sled.y += sled.thrust.y;
+
+                //move the poos
+
+                for (var i = sled.poos.length -1 ; i >= 0; i--){
+
+                    //check dist travelled
+                    if (sled.poos[i].dist > POO_DIST * canvas.width){
+                        sled.poos.splice(i, 1);
+                        continue;
+                    }
+
+                    //move the poo
+                    sled.poos[i].x += sled.poos[i].xv;
+                    sled.poos[i].y += sled.poos[i].yv;
+
+                    //calculate dist travelled
+                    sled.poos[i].dist += Math.sqrt(Math.pow(sled.poos[i].xv, 2) + Math.pow(sled.poos[i].yv, 2))
+
+                    //handle edge of screen
+                    if (sled.poos[i].x < 0){
+                        sled.poos[i].x = canvas.width;
+                    } else if (sled.poos[i].x > canvas.width){
+                        sled.poos[i].x = 0;
+                    }
+                    if (sled.poos[i].y < 0){
+                        sled.poos[i].y = canvas.height;
+                    } else if (sled.poos[i].y > canvas.height){
+                        sled.poos[i].y = 0;
+                    }
+                }
                 
             } else {
                 sled.explodeTime--;
