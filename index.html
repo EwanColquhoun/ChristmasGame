@@ -25,7 +25,10 @@
         const POO_DIST = 0.5; //max dist poo can travel as fraction of  screen width
         const POO_EXPLODE_DUR = 0.1 //duration of the poo explosion
         const SHOW_CENTER_DOT = false; //center dot for testing
-        const SHOW_BOUNDING = false; //show circles for collision
+        const SHOW_BOUNDING = false; //show circles for collision#
+        const TEXT_FADE_TIME = 2.5; //text fade time in seconds
+        const TEXT_SIZE = 60; //text font height in pixels
+        const GAME_LIVES = 3; //starting number of lives
 
 
         /** @type {HTMLCanvasElement}  */
@@ -33,7 +36,7 @@
         const ctx = canvas.getContext("2d");
 
         //set up game parameters
-        var level, pres, sled;
+        var level, pres, sled, text, textAlpha, lives;
         newGame();
 
         //set up event handlers
@@ -64,8 +67,19 @@
             sled.explodeTime = Math.ceil(SLED_EXPLODE_DUR * FPS)
         };
 
+        function gameOver(){
+            sled.dead = true;
+            text = "Game Over";
+            textAlpha = 1.0;
+        }
+
 
         function keyDown(/** @type {KeyboardEvent} */ ev){
+
+            if (sled.dead){
+                return;
+            }
+
             switch(ev.keyCode){
                 case 37: //left arrow (rotate left)
                     sled.rot = TURN_SPEED / 180 * Math.PI / FPS;
@@ -83,6 +97,11 @@
         }
 
         function keyUp(/** @type {KeyboardEvent} */ ev){
+            
+            if (sled.dead){
+                return;
+            }
+
             switch(ev.keyCode){
                 case 37: //left arrow (stop rotating left)
                     sled.rot = 0;
@@ -142,13 +161,15 @@
 
 
         function newGame(){
-            level = 0
+            level = 0;
+            lives = GAME_LIVES;
             sled = newSled();
             newLevel();
         }
 
         function newLevel(){
-
+            text = "Level " + (level +1)
+            textAlpha = 1.0;
             createPresDisp();
 
         }
@@ -170,7 +191,8 @@
                     },
                     explodeTime: 0,
                     canShoot: true,
-                    poos: []
+                    poos: [],
+                    dead: false
                 };
         }
 
@@ -200,14 +222,14 @@
         }
         
 
-        function drawSled(sled){
+        function drawSled(x, y, a){
             var img = new Image();
             img.src = "media/images/reindeer.png";
             ctx.save();
-            ctx.translate(sled.x, sled.y);
-            ctx.rotate(-sled.a+(90/180 *Math.PI));
-            ctx.translate(-sled.x-SLED_SIZE/2, -sled.y-SLED_SIZE/2);
-            ctx.drawImage(img, sled.x, sled.y, SLED_SIZE, SLED_SIZE);
+            ctx.translate(x, y);
+            ctx.rotate(-a+(90/180 *Math.PI));
+            ctx.translate(-x-SLED_SIZE/2, -y-SLED_SIZE/2);
+            ctx.drawImage(img, x, y, SLED_SIZE, SLED_SIZE);
             ctx.restore();
         }
 
@@ -221,7 +243,7 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             //thrust the sled
-            if (sled.thrusting && !exploding){
+            if (sled.thrusting && !exploding && !sled.dead){
                 sled.thrust.x += SLED_THRUST * Math.cos(sled.a)/ FPS;
                 sled.thrust.y -= SLED_THRUST * Math.sin(sled.a)/ FPS;
             } else {
@@ -231,8 +253,8 @@
             
             //draw sled
             if (!exploding){
-                if (blinkOn){
-                    drawSled(sled);
+                if (blinkOn && !sled.dead){
+                    drawSled(sled.x, sled.y, sled.a);
                 }
 
                 //handle blinking
@@ -323,6 +345,24 @@
                 }
             }
 
+            //draw the game text
+            if (textAlpha >= 0){
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = "rgba(245, 66, 173, " + textAlpha + ")";
+                ctx.font = "small-caps " + TEXT_SIZE + "px roboto sans mono";
+                ctx.fillText(text, canvas.width/2, canvas.height * 0.75);
+                textAlpha -= (1.0 / TEXT_FADE_TIME / FPS);
+            } else if (sled.dead) {
+                newGame();
+            }
+
+            //draw the lives
+            for (var i = 0; i < lives; i++){
+                drawSled(SLED_SIZE/1.5 + i * SLED_SIZE * 1.2, SLED_SIZE/2, 0.5 * Math.PI); //need adjusting for corner pos
+            }
+
+
             //detect poo hit on pres
             var ax, ay, ar, lx, ly;
             for (var i =pres.length -1; i>=0; i--){
@@ -354,7 +394,7 @@
 
             //check for collisions
             if (!exploding){
-                if (sled.blinkNum == 0){
+                if (sled.blinkNum == 0 && !sled.dead){
 
                     for (var i = 0; i < pres.length; i++){
                         if (distBetweenPoints(sled.x, sled.y, pres[i].x, pres[i].y) < sled.r + pres[i].r) {
@@ -415,10 +455,17 @@
                 }
                 
             } else {
+                //reduce the explosion time
                 sled.explodeTime--;
 
+                // reset the sled after explosion finished
                 if (sled.explodeTime == 0){
-                    sled = newSled();
+                    lives--;
+                    if (lives == 0){
+                        gameOver();
+                    } else {
+                        sled = newSled();
+                    }
                 }
             }
             
