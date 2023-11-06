@@ -33,26 +33,31 @@ body {
 }
 
 #left {
-    right: 15%;
+    right: 13%;
     bottom: 9%;
     border: 3px solid grey;
     border-radius: 5%;
     padding: 20px 40px;
+    margin: 20px 40px;
+
 }
 
 #fwd {
-    right: 9%;
+    right: 6%;
     bottom: 17%;
     border: 3px solid grey;
     border-radius: 5%;
     padding: 20px 40px;
+    margin: 20px 40px;
 }
 
 #right {
-    right: 5%;
+    right: 1%;
     bottom: 9%;
     border: 3px solid grey;
     border-radius: 5%;
     padding: 20px 40px;
+    margin: 20px 40px;
+
 }
 
