@@ -8,13 +8,17 @@
 </head>
 <body>
     <canvas id="myCanvas" width="1366" height="1024"></canvas>
+    <div id="shoot">SHOOT</div>
+    <div id="left">L</div>
+    <div id="fwd">FWD</div>
+    <div id="right">R</div>
     <script>
         const FPS = 30; //frames per second
         const TURN_SPEED = 360; //turn speed in deg per second
         const FRICTION = 0.7; //friction coefficient of snow (0 = no friction, 1 = lots)
         const PRES_NUM = 3; //starting num of pres
         const PRES_SPD = 50; //max starting speed in pix per second
-        const PRES_SIZE = 180; // starting size of presents in pix
+        const PRES_SIZE = 160; // starting size of presents in pix
         const PRES_POINTS_LGE = 20 //points scored for large pres
         const PRES_POINTS_MED = 10 //points scored for large pres
         const PRES_POINTS_SML = 5 //points scored for large pres
@@ -46,6 +50,46 @@
         //set up event handlers
         document.addEventListener("keydown", keyDown);
         document.addEventListener("keyup", keyUp);
+
+        //get buttons for touch actions
+        const shoot = document.getElementById('shoot');
+        const left = document.getElementById('left');
+        const fwd = document.getElementById('fwd');
+        const right = document.getElementById('right');
+
+        //handle touch actions
+        shoot.addEventListener("touchstart", e => {
+            shootPoo();
+        });
+        shoot.addEventListener("touchend", e => {
+            sled.canShoot = true;
+        });
+
+        left.addEventListener("touchstart", e => {
+            console.log('left')
+            sled.rot = TURN_SPEED / 180 * Math.PI / FPS;
+        });
+        left.addEventListener("touchend", e => {
+            sled.rot = 0;
+        });
+
+        fwd.addEventListener("touchstart", e => {
+            console.log('fwd')
+
+            sled.thrusting = true;
+        });
+        fwd.addEventListener("touchend", e => {
+            sled.thrusting = false;
+        });
+
+        right.addEventListener("touchstart", e => {
+            console.log('right')
+
+            sled.rot = -TURN_SPEED / 180 * Math.PI / FPS;
+        });
+        right.addEventListener("touchend", e => {
+            sled.rot = 0;
+        });
 
         //set up game loop
 
@@ -146,8 +190,8 @@
                 pres.push(newPres(x, y, PRES_SIZE / 4));
                 score += PRES_POINTS_LGE;
             } else if (r == Math.ceil(PRES_SIZE / 4)){
-                pres.push(newPres(x, y, Math.ceil(PRES_SIZE / 8)));
-                pres.push(newPres(x, y, Math.ceil(PRES_SIZE / 8)));
+                pres.push(newPres(x, y, Math.ceil(PRES_SIZE / 6)));
+                pres.push(newPres(x, y, Math.ceil(PRES_SIZE / 6)));
                 score += PRES_POINTS_MED;
             } else {
                 score += PRES_POINTS_SML;
