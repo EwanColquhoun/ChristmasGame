@@ -59,6 +59,7 @@
 
         //handle touch actions
         shoot.addEventListener("touchstart", e => {
+            e.preventDefault();
             shootPoo();
         });
         shoot.addEventListener("touchend", e => {
@@ -66,7 +67,7 @@
         });
 
         left.addEventListener("touchstart", e => {
-            console.log('left')
+            e.preventDefault();
             sled.rot = TURN_SPEED / 180 * Math.PI / FPS;
         });
         left.addEventListener("touchend", e => {
@@ -74,8 +75,7 @@
         });
 
         fwd.addEventListener("touchstart", e => {
-            console.log('fwd')
-
+            e.preventDefault();
             sled.thrusting = true;
         });
         fwd.addEventListener("touchend", e => {
@@ -83,8 +83,7 @@
         });
 
         right.addEventListener("touchstart", e => {
-            console.log('right')
-
+            e.preventDefault();
             sled.rot = -TURN_SPEED / 180 * Math.PI / FPS;
         });
         right.addEventListener("touchend", e => {
