@@ -12,9 +12,12 @@
         const FPS = 30; //frames per second
         const TURN_SPEED = 360; //turn speed in deg per second
         const FRICTION = 0.7; //friction coefficient of snow (0 = no friction, 1 = lots)
-        const PRES_NUM = 1; //starting num of pres
+        const PRES_NUM = 3; //starting num of pres
         const PRES_SPD = 50; //max starting speed in pix per second
-        const PRES_SIZE = 150; // starting size of presents in pix
+        const PRES_SIZE = 180; // starting size of presents in pix
+        const PRES_POINTS_LGE = 20 //points scored for large pres
+        const PRES_POINTS_MED = 10 //points scored for large pres
+        const PRES_POINTS_SML = 5 //points scored for large pres
         const SLED_SIZE = 100; //size in pizels
         const SLED_THRUST = 5; //accel of the sled
         const SLED_EXPLODE_DUR = 0.4; //duration of sled explosion
@@ -29,6 +32,7 @@
         const TEXT_FADE_TIME = 2.5; //text fade time in seconds
         const TEXT_SIZE = 60; //text font height in pixels
         const GAME_LIVES = 3; //starting number of lives
+        const SAVE_KEY_SCORE = "highscore"; //save key for local storage of high score
 
 
         /** @type {HTMLCanvasElement}  */
@@ -36,7 +40,7 @@
         const ctx = canvas.getContext("2d");
 
         //set up game parameters
-        var level, pres, sled, text, textAlpha, lives;
+        var level, pres, sled, text, textAlpha, lives, score, scoreHigh;
         newGame();
 
         //set up event handlers
@@ -138,15 +142,21 @@
 
             //spilt the pres in 2
             if (r == Math.ceil(PRES_SIZE / 2)){
-                console.log('new pres 1', r)
-                // PRES_SIZE = 50
                 pres.push(newPres(x, y, PRES_SIZE / 4));
                 pres.push(newPres(x, y, PRES_SIZE / 4));
+                score += PRES_POINTS_LGE;
             } else if (r == Math.ceil(PRES_SIZE / 4)){
-                console.log('new pres 2', r)
-                // PRES_SIZE = 25
                 pres.push(newPres(x, y, Math.ceil(PRES_SIZE / 8)));
                 pres.push(newPres(x, y, Math.ceil(PRES_SIZE / 8)));
+                score += PRES_POINTS_MED;
+            } else {
+                score += PRES_POINTS_SML;
+            }
+
+            //check highscore
+            if (score > scoreHigh){
+                scoreHigh = score;
+                localStorage.setItem(SAVE_KEY_SCORE, scoreHigh);
             }
 
             //destroy pres
@@ -161,9 +171,18 @@
 
 
         function newGame(){
+            score = 0;
             level = 0;
             lives = GAME_LIVES;
             sled = newSled();
+
+            //get highscore from local storage
+            var scoreStr = localStorage.getItem(SAVE_KEY_SCORE);
+            if (scoreStr == null){
+                scoreHigh = 0;
+            } else {
+                scoreHigh = parseInt(scoreStr);
+            }
             newLevel();
         }
 
@@ -349,7 +368,7 @@
             if (textAlpha >= 0){
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
-                ctx.fillStyle = "rgba(245, 66, 173, " + textAlpha + ")";
+                ctx.fillStyle = "rgba(64, 26, 48, " + textAlpha + ")";
                 ctx.font = "small-caps " + TEXT_SIZE + "px roboto sans mono";
                 ctx.fillText(text, canvas.width/2, canvas.height * 0.75);
                 textAlpha -= (1.0 / TEXT_FADE_TIME / FPS);
@@ -359,9 +378,20 @@
 
             //draw the lives
             for (var i = 0; i < lives; i++){
-                drawSled(SLED_SIZE/1.5 + i * SLED_SIZE * 1.2, SLED_SIZE/2, 0.5 * Math.PI); //need adjusting for corner pos
+                drawSled(SLED_SIZE/1.5 + i * SLED_SIZE * 1.2, SLED_SIZE/1.5, 0.5 * Math.PI); //need adjusting for corner pos
             }
 
+            //draw the score
+            ctx.textAlign = "right";
+            ctx.fillStyle = "rgb(64, 26, 48)";
+            ctx.font = TEXT_SIZE + "px roboto sans mono";
+            ctx.fillText(score, canvas.width - SLED_SIZE/1.5, SLED_SIZE/1.5);
+
+            //draw scoreHigh
+            ctx.textAlign = "center";
+            ctx.fillStyle = "rgb(64, 26, 48)";
+            ctx.font = (TEXT_SIZE * 0.75) + "px roboto sans mono";
+            ctx.fillText("Top Score " +scoreHigh, canvas.width/2, SLED_SIZE/1.5);
 
             //detect poo hit on pres
             var ax, ay, ar, lx, ly;
