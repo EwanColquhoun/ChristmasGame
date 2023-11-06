@@ -12,7 +12,7 @@
         const FPS = 30; //frames per second
         const TURN_SPEED = 360; //turn speed in deg per second
         const FRICTION = 0.7; //friction coefficient of snow (0 = no friction, 1 = lots)
-        const PRES_NUM = 5; //starting num of pres
+        const PRES_NUM = 1; //starting num of pres
         const PRES_SPD = 50; //max starting speed in pix per second
         const PRES_SIZE = 150; // starting size of presents in pix
         const SLED_SIZE = 100; //size in pizels
@@ -32,13 +32,9 @@
         const canvas = document.getElementById("myCanvas");
         const ctx = canvas.getContext("2d");
 
-        var sled = newSled();
-
-        //set up presents
-        var pres = [];
-        createPresDisp();
-
-        // const image = new Image();
+        //set up game parameters
+        var level, pres, sled;
+        newGame();
 
         //set up event handlers
         document.addEventListener("keydown", keyDown);
@@ -51,7 +47,7 @@
         function createPresDisp(){
             pres = [];
             var x, y;
-            for (var i = 0; i < PRES_NUM; i++ ){
+            for (var i = 0; i < PRES_NUM + level; i++ ){
                 do {
                 x = Math.floor(Math.random() * canvas.width);
                 y = Math.floor(Math.random() * canvas.height);
@@ -104,11 +100,12 @@
         }
 
         function newPres(x, y, r){
+            var lvlMult = 1 + 0.1 * level;
             var pres = {
                 x: x,
                 y: y,
-                xv: Math.random() * PRES_SPD / FPS * (Math.random() < 0.5 ? 1 : -1),
-                yv: Math.random() * PRES_SPD / FPS * (Math.random() < 0.5 ? 1 : -1),
+                xv: Math.random() * PRES_SPD * lvlMult / FPS * (Math.random() < 0.5 ? 1 : -1),
+                yv: Math.random() * PRES_SPD * lvlMult / FPS * (Math.random() < 0.5 ? 1 : -1),
                 r: r,
                 a: Math.random() * Math.PI * 2 //in radians
             }
@@ -135,7 +132,27 @@
 
             //destroy pres
             pres.splice(index, 1);
+
+            //new level when no more pres
+            if (pres.length == 0){
+                level ++;
+                newLevel();
+            }
         }
+
+
+        function newGame(){
+            level = 0
+            sled = newSled();
+            newLevel();
+        }
+
+        function newLevel(){
+
+            createPresDisp();
+
+        }
+
 
         function newSled(){
                 return {
