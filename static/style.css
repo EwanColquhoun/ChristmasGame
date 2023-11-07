@@ -22,42 +22,44 @@ body {
 #shoot, #fwd, #right, #left {
     position: absolute;
     z-index: 100;
+    color: rgb(64, 26, 48);
 }
 
 #shoot {
     left: 8%;
-    bottom: 9%;
+    bottom: 5%;
     border: 3px solid grey;
-    border-radius: 5%;
+    border-radius: 40%;
     padding: 20px;
+    margin: 20px 40px;
+    font-family: sans-serif;
 }
 
 #left {
     right: 13%;
-    bottom: 9%;
+    bottom: 5%;
     border: 3px solid grey;
-    border-radius: 5%;
+    border-radius: 40%;
     padding: 20px 40px;
     margin: 20px 40px;
 
 }
 
 #fwd {
-    right: 6%;
+    right: 7%;
     bottom: 17%;
     border: 3px solid grey;
-    border-radius: 5%;
+    border-radius: 40%;
     padding: 20px 40px;
     margin: 20px 40px;
 }
 
 #right {
     right: 1%;
-    bottom: 9%;
+    bottom: 5%;
     border: 3px solid grey;
-    border-radius: 5%;
+    border-radius: 40%;
     padding: 20px 40px;
     margin: 20px 40px;
-
 }
 
